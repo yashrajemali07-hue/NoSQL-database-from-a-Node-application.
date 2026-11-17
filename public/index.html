@@ -1,0 +1,234 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Management System</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #f2f2f2;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .container {
+            background: white;
+            padding: 25px;
+            max-width: 650px;
+            margin: auto;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #ccc;
+        }
+
+        input {
+            padding: 10px;
+            margin: 8px;
+            width: 80%;
+            border: 1px solid #aaa;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 10px 18px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+
+        .delete {
+            background: red;
+        }
+
+        .edit {
+            background: green;
+        }
+
+        .student {
+            background: #eee;
+            padding: 12px;
+            margin: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Student Management System</h1>
+
+    <h3>Add Student Details</h3>
+
+    <input type="text" id="name"
+           placeholder="Enter Student Name">
+
+    <input type="email" id="email"
+           placeholder="Enter Email">
+
+    <input type="text" id="course"
+           placeholder="Enter Course">
+
+    <br>
+
+    <button onclick="saveStudent()">Add Student</button>
+
+    <h2>Student Records</h2>
+
+    <div id="records"></div>
+
+</div>
+
+<script>
+
+let editingId = null;
+
+// Add or Update Student
+async function saveStudent() {
+
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const course = document.getElementById("course").value.trim();
+
+    if (!name || !email || !course) {
+        alert("Please fill all fields");
+        return;
+    }
+
+    const student = { name, email, course };
+
+    try {
+        const url = editingId
+            ? `/students/${editingId}`
+            : "/students";
+
+        const method = editingId ? "PUT" : "POST";
+
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(student)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || result.message);
+        }
+
+        alert(editingId
+            ? "Student updated successfully!"
+            : "Student added successfully!");
+
+        editingId = null;
+
+        document.querySelector("button").innerText =
+            "Add Student";
+
+        clearForm();
+        loadStudents();
+
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+// Display Students
+async function loadStudents() {
+
+    try {
+        const response = await fetch("/students");
+        const students = await response.json();
+
+        const records = document.getElementById("records");
+        records.innerHTML = "";
+
+        students.forEach(student => {
+
+            const div = document.createElement("div");
+            div.className = "student";
+
+            const details = document.createElement("p");
+            details.textContent =
+                `Name: ${student.name} | Email: ${student.email} | Course: ${student.course}`;
+
+            const editBtn = document.createElement("button");
+            editBtn.innerText = "Edit";
+            editBtn.className = "edit";
+            editBtn.onclick = () => editStudent(student);
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.innerText = "Delete";
+            deleteBtn.className = "delete";
+            deleteBtn.onclick = () => deleteStudent(student._id);
+
+            div.appendChild(details);
+            div.appendChild(editBtn);
+            div.appendChild(deleteBtn);
+
+            records.appendChild(div);
+        });
+
+    } catch (error) {
+        alert("Unable to load students");
+    }
+}
+
+// Edit Student
+function editStudent(student) {
+
+    document.getElementById("name").value = student.name;
+    document.getElementById("email").value = student.email;
+    document.getElementById("course").value = student.course;
+
+    editingId = student._id;
+
+    document.querySelector("button").innerText =
+        "Update Student";
+}
+
+// Delete Student
+async function deleteStudent(id) {
+
+    if (!confirm("Are you sure you want to delete?")) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/students/${id}`, {
+            method: "DELETE"
+        });
+
+        if (!response.ok) {
+            throw new Error("Delete failed");
+        }
+
+        alert("Student deleted successfully!");
+
+        loadStudents();
+
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+// Clear Form
+function clearForm() {
+    document.getElementById("name").value = "";
+    document.getElementById("email").value = "";
+    document.getElementById("course").value = "";
+}
+
+// Load records when page opens
+loadStudents();
+
+</script>
+
+</body>
+</html>
